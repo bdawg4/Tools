@@ -1,0 +1,35 @@
+Kanban helps visualize the work, it is a flexible framework designed for continuous flows..
+
+this works for production support teams because it handles interruptions naturally.. things like
+WP incidents, change of priorities, putting out fires, drive-bys etc.
+
+No, you are not supposed to use interrupts or add unplanned work during an active Scrum sprint because it breaks the team's focus and ruins the sprint goal.
+
+in a scrum framework, you are supposed to have two meetings at the end of the sprint
+
+the sprint review  what to build next and what was completed
+
+the sprint retrospective. what went well, what failed and what to fix.
+
+
+########
+
+1. What is the current process at the firm to join computer accounts as they are built ?
+
+	1. there needs to be a new process. self service of some sort to pre-stage computer accounts
+	2. ms-DS-MachineAccountQuota - default 10
+        3. pre-stage account , grant proper permissions to service account in ou
+           - New-ADComputer -Name "SRV-PROD-SQL01" -Path "OU=Tier1_AppServers,OU=Tier1,DC=domain,DC=com"
+        4. with the service account, on the server run Add-Computer -DomainName "yourdomain.com" -Restart
+
+2. monitoring when computer accounts are created or moved between tiers..
+
+3. helpdesk operations, any challenges for account/computer onboarding/offboarding pipelines
+
+4. legacy applications using ldap path for service accounts
+
+5. what about the unify password reset tool. how does that impact in any way ?
+
+6. Kerberos delegation/ constraint and unconstraint delegation
+
+7. permission inheritance
