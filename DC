@@ -1,0 +1,51 @@
+on bad dc: these are all read-only command options
+
+dcdiag /test:dns /v     # defaults to /dnsall
+
+These are all the tests..
+/DnsBasic
+/DnsForwarders
+/DnsDelegation
+/DnsDynamicUpdate
+/DnsRecordRegistration
+/DnsResolveExtName
+/DnsAll
+
+mkdir C:\Temp\ADDiag
+dcdiag /test:dns /Dnsall /v > C:\Temp\ADDiag\dcdiag-dns-basic.txt
+
+
+repadmin /replsummary
+
+repadmin /showrepl
+
+dcdiag /test:replications /v
+
+###
+
+in dns manager, gp to the forward lookup zone.. under the forest name, check properties - general and see what the replication is set to..
+it should be "all dns servers in this domain"
+
+###
+
+lets check the disk space and make sure there are no issues there
+
+###
+
+nslookup server123.corp.contoso.com DC03
+
+###
+
+ipconfig /all .. check dns servers should be DCs not external dns
+
+### time drift can cause replication issues
+
+w32tm /query /status
+
+###
+
+check dfsr.logs in c:\windows\debug
+
+###
+
+net share
