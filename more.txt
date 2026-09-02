@@ -1,0 +1,64 @@
+DRSR AD database / sysvol , scripts , files is DFSR
+
+Microsoft recommends using bitlocker encryption on enterprise domain controllers
+
+100gig+ ntds.dit and sysvol..
+
+*** should be on live domain controls where the agent is installed - best practices
+
+in the event of an attack, what components must remain functional to perform a recovery?
+
+i know semperis encrypts the backups with its own algorithms, and i am used to using quest rmad..
+
+rmad encrypts the data in memory before writing it to disc, how does semperis do this?
+
+***if post-write encryption.. this probably means having to write the data twice.. copy the data to staging area and then encrypting it..
+***agent-based
+
+from my understanding, the AD database file (ntds.dit) is partially encrypted, specially when it comes to credential data..
+and so, in order to decrypt operations.. the windows system hive specifically from that unique controller requires a set of keys
+
+what is the process of data sanitizing.. does that happen during a backup or a restore?
+
+by that i mean at what point during the does it evaluate a backup and deems it healthy and malware free
+
+
+what happens if every production DC is unavailable, DNS is unavailable, normal admin accounts cannot authenticate,
+the Semperis management infrastructure is inaccessible, or network segmentation has isolated the recovery environment.
+
+How do we determine which backup is safe when we don't know exactly when the attacker entered AD?” This is one of the most important ransomware questions. Ask how they identify suspicious AD changes and correlate those changes against recovery points.
+
+
+what validations take place to determine that a restore is clean of any malware
+
+what about things like kerberoasting..
+
+does semperis do BMR (bare metal restores) ?
+
+WannaCry, NotPetya, LockerGoga = ransomware
+
+
+https://cybersecurity-excellence-awards.com/candidates/semperis-active-directory-forest-recovery-adfr-2/
+
+ANYWHERE RECOVERY:
+
+
+Semperis’s patented technology enables AD recovery directly to Microsoft Azure. Simply stand up VMs in Azure with the same Windows version number and similar disk layout. Semperis also includes IP mapping to facilitate DR to the cloud.
+
+
+CLEAN RESTORE:
+
+
+Semperis eliminates re-introduction of malware from system state and bare-metal backups by decoupling AD from Windows and restoring only what’s needed (no executables or DLLs) for
+the server’s role as a DC, DNS, or DHCP server. Restore from the latest backup even if servers have been infected
+
+
+ADVANCED AUTOMATION:
+
+
+AD recovery is a complex, time-consuming process. Semperis automates and optimizes the entire recovery process, from assessing what’s left in the environment and formulating a recovery plan, to cleaning up AD metadata, generating IFM disks, and more.
+
+
+How Recovery Works in Semperis ProductsActive Directory Forest Recovery (ADFR): This tool focuses on rebuilding entire Active Directory domains and forests from malware-free backups (such as after a ransomware attack). While it performs holistic, automated recovery of domain controllers and system states, it is not the ideal tool for extracting and restoring a single user, group, or isolated object under normal operational circumstances.
+
+Directory Services Protector (DSP): For granular, object-level rollbacks (such as undoing accidental deletions or malicious changes to specific users, groups, attributes, GPOs, or DNS records), Semperis uses its Directory Services Protector (DSP) solution instead. DSP tracks continuous changes and allows point-in-time granular recovery without needing a full system-state or forest-level restore.
