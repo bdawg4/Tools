@@ -1,10 +1,10 @@
 ###
 
-ES10 DC dns issue, this was resolved on Friday.. we identified it to be a dns island bottleneck, 
+ES10 DC dns issue, we identified it to be a dns island bottleneck, 
 
 which happens when the primary dns server is pointing to itself and cannot replicate ..
 
-and so we flipped the dns entries of the preferred DNS server to the healthy DC rather than localhost , rebooted and validated via nslookup queries..
+we repointed the preferred DNS server to the healthy DC rather than localhost , rebooted and saw the dns records reload.. validated via nslookup queries..
 
 to get more traction on what exactly happened, we can enable dns audit on the dnz zone properties..
 
