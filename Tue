@@ -1,0 +1,39 @@
+###
+
+ES10 DC dns issue, this was resolved on Friday.. we looked at it after the scrum call and identified it to be a dns island issue, 
+
+which happens when the primary dns server is pointing to itself and cannot replicate ..
+
+and so we flipped the dns entries to be the healthy DC as primary, rebooted and validated via nslookup queries..
+
+to get more traction on what exactly happened, we can enable dns audit on the dnz zone properties..
+
+the other thing i noticed is that there are some stale records from old dc's and dns scavenging is turned off..
+
+
+*** it happens because the dns service says hey i am authoritative and i dunno that record so there is no failure in response..
+
+###
+
+DFS servers, i looked into the replication options.. for DFS 2022..
+
+hub and spoke - 3 or more servers - pick a central server (hub) that replicates with multiple branch servers
+full mesh - at least 2 servers or more - replicates data to every other member in the group
+no topology - (custom topology) -  Creates a blank group so you can manually define custom connections later
+
+in a full mesh topology,
+if its only 2 servers then you have bi-directional traffic..
+if its 3+ servers then every server replicates to each other, for example 4 servers require 6 connections
+
+ORADFS = Orangeburg DFS
+RRDDFS = Ridge Road DFS
+
+ORGDFS → Orangeburg DFS
+RIDDFS → Ridge Road DFS
+ 
+1. create cluster - pay going away, fin staying 2022
+2. identify best dfs setup
+3. apac introduction
+4. SPLUNK queries.. to discover indexes , source names and account lock
+
+https://medium.com/@cyberpro151/understanding-kerberos-delegation-and-unconstrained-delegation-dfb485d20997
