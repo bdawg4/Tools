@@ -25,6 +25,10 @@ in a full mesh topology,
 if its only 2 servers then you have bi-directional traffic..
 if its 3+ servers then every server replicates to each other, for example 4 servers require 6 connections
 
+looking at the options on the table i think the best replication topology would be a custom topology where
+each server within the same datacenter is connected with a bidirectional connection for quick local replication,
+and a second connection between the 2 servers in datacenter B..
+
 ORADFS = Orangeburg DFS
 RRDDFS = Ridge Road DFS
 
