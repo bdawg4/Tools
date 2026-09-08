@@ -29,6 +29,9 @@ looking at the options on the table i think the best replication topology would 
 each server within the same datacenter is connected with a bidirectional connection for quick local replication,
 and a second connection between the 2 servers in datacenter B..
 
+in the vent of a DR test, we would need to execute some commands to determine if a server has any pending items in the queue before powering it off.
+in the event of a server crash, the partner server would be quickest to have the latest update before the server goes down.
+
 ORADFS = Orangeburg DFS
 RRDDFS = Ridge Road DFS
 
