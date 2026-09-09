@@ -1,0 +1,47 @@
+# AD CS
+
+auto-enrollment, templates ( defines who can enroll and what they can do )..
+
+code signing 
+
+group policy pushes out trust and auto enrollment to machines
+
+ADCS tracks certificate lifecycle.. issuance, renewal, revocation, recovery
+
+hashing..
+
+symmetric encryption -> secret key used for both encrypt and decrypt (best for speed , bulk data)
+
+asymmentric encryption -> public key (decrypt) and private key (sign/encrypt) (best for secure key exchange/identity, small data)
+
+
+[ Server A (Client) ]                               [ Server B ]
+
+         |                                               |
+         | -------- 1. Client Hello -------------------> |
+         |  |  <-- Shared Secret Securely Passed
+         |                                               |
+         | <======= 4. Encrypted Data (Symmetric) ======>|  <-- Fast Bulk Data Transfer Starts
+
+
+-When two servers communicate, they use asymmetric encryption to securely verify identities and establish trust, then immediately switch to symmetric encryption to rapidly transfer the bulk data.
+
+a. Server A sends clientHello along with its supported TLS versions, a list of cypher suites and a temp "session key" share.
+b. Server B confirms TLS and cipher suite to use,  a temp "session key" share, and sends its public key cert to server A everything (signed) with its private key.
+c. Server A validates the signed message with the public key.
+d. Symmectric session is established combining both temp session keys (symmetric key). now the secure tunnel is established and all data
+is encrypted using the shared symmetric key.
+ 
+1. Server A creates a temporary, random "session key" and encrypts it using Server B's public key. Only Server B can decrypt this secret session key using its private key.
+
+2. All subsequent API calls, database transfers, or microservice payloads are encrypted and decrypted using the lightning-fast symmetric key.
+
+When server A tries to talk to server B and both having the same Root internal CA, server B needs to have intermediate and the leaf certificate.. 
+server A will receive the leaf certificate + intermediate from server B to establish secure communication chain validation path
+
+*** an intermediate certificate bridges the gap between a leaf certificate and the root CA.. so the leaf certificate is signed by the intermediate certificate,
+and the intermediate certificate is signed by the root CA.
+
+*** Server A checks its own local tamper-proof store, finds "Root Y", and says: "I trust Root Y, therefore I trust Intermediate X, which means I can safely trust this Leaf Certificate."
+
+CRL (Certificate Revocation List): A large, downloadable file containing all revoked certificates from a specific CA.
