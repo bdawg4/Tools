@@ -1,0 +1,60 @@
+Use a WinRM HTTPS PSSession on port 5986, then query the remote machine’s Local Computer Trusted Root store.
+
+$s = New-PSSession -ComputerName SERVER01 -UseSSL
+
+Then:
+
+Invoke-Command -Session $s -ScriptBlock {
+    Get-ChildItem Cert:\LocalMachine\Root |
+        Where-Object {
+            $_.Subject -like "*DigiCert*" -or
+            $_.Issuer -like "*DigiCert*"
+        } |
+        Select-Object Subject, Issuer, Thumbprint, NotBefore, NotAfter
+}
+
+If you want a cleaner table:
+
+Invoke-Command -Session $s -ScriptBlock {
+    Get-ChildItem Cert:\LocalMachine\Root |
+        Where-Object {
+            $_.Subject -like "*DigiCert*" -or
+            $_.Issuer -like "*DigiCert*"
+        } |
+        Select-Object Subject, Issuer, Thumbprint, NotAfter
+} | Format-Table -AutoSize
+
+To also check DigiCert intermediate certificates, query LocalMachine\CA:
+
+Invoke-Command -Session $s -ScriptBlock {
+    Get-ChildItem Cert:\LocalMachine\CA |
+        Where-Object {
+            $_.Subject -like "*DigiCert*" -or
+            $_.Issuer -like "*DigiCert*"
+        } |
+        Select-Object Subject, Issuer, Thumbprint, NotAfter
+} | Format-Table -AutoSize
+
+For your troubleshooting, I’d check both stores together:
+
+Invoke-Command -Session $s -ScriptBlock {
+
+    Get-ChildItem Cert:\LocalMachine\Root |
+        Where-Object {
+            $_.Subject -like "*DigiCert*" -or
+            $_.Issuer -like "*DigiCert*"
+        } |
+        Select-Object @{N='Store';E={'Root'}}, Subject, Issuer, Thumbprint, NotAfter
+
+    Get-ChildItem Cert:\LocalMachine\CA |
+        Where-Object {
+            $_.Subject -like "*DigiCert*" -or
+            $_.Issuer -like "*DigiCert*"
+        } |
+        Select-Object @{N='Store';E={'Intermediate'}}, Subject, Issuer, Thumbprint, NotAfter
+
+} | Format-Table -AutoSize
+
+When finished:
+
+Remove-PSSession $s
