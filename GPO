@@ -26,3 +26,7 @@ dsquery * "CN=Policies,CN=System,DC=domain,DC=com" -filter "(objectClass=groupPo
 Get-ADObject -Filter "objectClass -eq 'groupPolicyContainer'" -Properties whenChanged | 
     Sort-Object whenChanged -Descending | 
     Select-Object Name, displayName, whenChanged -First 1
+
+Get-ADObject -Filter "objectClass -eq 'groupPolicyContainer'" -Properties displayName, whenChanged | 
+    Sort-Object whenChanged -Descending | 
+    Select-Object @{Name="GPO Name"; Expression={$_.displayName}}, @{Name="Modified Time"; Expression={$_.whenChanged}} -First 1
