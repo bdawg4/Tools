@@ -1,0 +1,12 @@
+$Path = "C:\GPO-Audit\XML"
+New-Item $Path -ItemType Directory -Force | Out-Null
+
+Get-GPO -All | ForEach-Object {
+
+    $File = "$Path\$($_.Id).xml"
+
+    Get-GPOReport `
+        -Guid $_.Id `
+        -ReportType XML `
+        -Path $File
+}
