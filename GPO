@@ -20,6 +20,25 @@ Get-ChildItem C:\GPO-Audit\XML\*.xml |
 
 Get-GPO -Guid "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
+OR
+
+$Search = "clipboard"
+$Path   = "C:\GPO-Audit\XML"
+
+Get-ChildItem $Path -Filter "*.xml" |
+    Select-String -Pattern $Search |
+    ForEach-Object {
+
+        [xml]$Xml = Get-Content $_.Path -Raw
+
+        [PSCustomObject]@{
+            GPOName    = $Xml.GPO.Name
+            Match      = $_.Line.Trim()
+            LineNumber = $_.LineNumber
+            File       = $_.Path
+        }
+    } |
+    Format-Table -AutoSize
 
 # what gpo changed
 dsquery * "CN=Policies,CN=System,DC=domain,DC=com" -filter "(objectClass=groupPolicyContainer)" -attr name displayName whenChanged -limit 10
