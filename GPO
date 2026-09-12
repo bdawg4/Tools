@@ -10,3 +10,19 @@ Get-GPO -All | ForEach-Object {
         -ReportType XML `
         -Path $File
 }
+
+# search each gpo
+
+Get-ChildItem C:\GPO-Audit\XML\*.xml |
+    Select-String -Pattern "clipboard"
+
+# resolve it
+
+Get-GPO -Guid "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# what gpo changed
+dsquery * "CN=Policies,CN=System,DC=domain,DC=com" -filter "(objectClass=groupPolicyContainer)" -attr name displayName whenChanged -limit 10
+
+Get-ADObject -Filter "objectClass -eq 'groupPolicyContainer'" -Properties whenChanged | 
+    Sort-Object whenChanged -Descending | 
+    Select-Object Name, displayName, whenChanged -First 1
