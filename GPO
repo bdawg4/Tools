@@ -20,44 +20,6 @@ Get-ChildItem C:\GPO-Audit\XML\*.xml |
 
 Get-GPO -Guid "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
-OR
-
-Get-ChildItem *.xml | ForEach-Object {
-    $file = $_
-    
-    # 1. Look for a GUID inside curly braces {xxxx-xxxx...} in the filename
-    if ($file.BaseName -match '\{[a-fA-F0-9-]+\}') {
-        $guid = $Matches[0] # [0] extracts the literal string match properly
-
-        # 2. Check if this specific file contains NoLMHash
-        $search = Select-String -Path $file.FullName -Pattern "NoLMHash" -Context 2,2
-        
-        if ($search) {
-            # 3. Resolve the name live from Active Directory
-            try {
-                $gpoName = (Get-GPO -Guid $guid -ErrorAction Stop).DisplayName
-            }
-            catch {
-                $gpoName = "Unknown (Cannot resolve GUID in AD)"
-            }
-
-            # 4. Output a clean breakdown of the match
-            Write-Host "=========================================" -ForegroundColor Cyan
-            Write-Host "GPO NAME: $gpoName" -ForegroundColor Green
-            Write-Host "GUID/FILE: $($file.Name)" -ForegroundColor Yellow
-            Write-Host "=========================================" -ForegroundColor Cyan
-            
-            # Display the exact XML context lines that matched
-            $search | ForEach-Object {
-                Write-Host "--- Context Block (Line $($_.LineNumber)) ---"
-                $_.Context.PreContext | ForEach-Object { Write-Host "  $_" }
-                Write-Host "> $_" -ForegroundColor Match # Highlight the matching line
-                $_.Context.PostContext | ForEach-Object { Write-Host "  $_" }
-            }
-            Write-Host ""
-        }
-    }
-}
 
 # what gpo changed
 dsquery * "CN=Policies,CN=System,DC=domain,DC=com" -filter "(objectClass=groupPolicyContainer)" -attr name displayName whenChanged -limit 10
