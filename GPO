@@ -20,6 +20,29 @@ Get-ChildItem C:\GPO-Audit\XML\*.xml |
 
 Get-GPO -Guid "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
+OR
+
+Get-ChildItem *.xml | ForEach-Object {
+    # Load the XML file safely
+    [xml]$gpoXml = Get-Content $_.FullName -Raw
+    
+    # Extract the GPO's friendly name from the XML structure
+    # Works for standard GPO reports and backups
+    $gpoName = $gpoXml.GPO.Name ?? $gpoXml.GroupPolicyObject.Name ?? "Unknown GPO"
+
+    # Search the file for NoLMHash
+    $match = $_ | Select-String -Pattern "NoLMHash"
+    
+    if ($match) {
+        [PSCustomObject]@{
+            GPOName    = $gpoName
+            GUIDFile   = $_.Name
+            LineNumber = $match.LineNumber
+            MatchedText= $match.Line.Trim()
+        }
+    }
+} | Format-Table -AutoSize
+
 # what gpo changed
 dsquery * "CN=Policies,CN=System,DC=domain,DC=com" -filter "(objectClass=groupPolicyContainer)" -attr name displayName whenChanged -limit 10
 
