@@ -23,22 +23,29 @@ Get-GPO -Guid "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 OR
 
 Get-ChildItem *.xml | ForEach-Object {
-    # Load the XML file safely
-    [xml]$gpoXml = Get-Content $_.FullName -Raw
-    
-    # Extract the GPO's friendly name from the XML structure
-    # Works for standard GPO reports and backups
-    $gpoName = $gpoXml.GPO.Name ?? $gpoXml.GroupPolicyObject.Name ?? "Unknown GPO"
-
-    # Search the file for NoLMHash
-    $match = $_ | Select-String -Pattern "NoLMHash"
-    
-    if ($match) {
-        [PSCustomObject]@{
-            GPOName    = $gpoName
-            GUIDFile   = $_.Name
-            LineNumber = $match.LineNumber
-            MatchedText= $match.Line.Trim()
+    # Extract the GUID from the filename (e.g., {GUID}.xml)
+    if ($_.BaseName -match '\{[a-fA-F0-9-]+\}') {
+        $guid = $Matches[0]
+        
+        # Check if the XML file contains NoLMHash
+        if (Select-String -Path $_.FullName -Pattern "NoLMHash" -Quiet) {
+            try {
+                # Resolve the GUID live against AD to get the friendly name
+                $gpo = Get-GPO -Guid $guid -ErrorAction Stop
+                
+                [PSCustomObject]@{
+                    GPOName  = $gpo.DisplayName
+                    GUID     = $guid
+                    FileName = $_.Name
+                }
+            }
+            catch {
+                [PSCustomObject]@{
+                    GPOName  = "Failed to resolve (Orphaned GPO?)"
+                    GUID     = $guid
+                    FileName = $_.Name
+                }
+            }
         }
     }
 } | Format-Table -AutoSize
