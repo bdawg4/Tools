@@ -26,7 +26,7 @@ the sprint retrospective. what went well, what failed and what to fix.
 
 3. helpdesk operations, any challenges for account/computer onboarding/offboarding pipelines
 
-4. legacy applications using ldap path for service accounts
+4. legacy unix applications using ldap path for service accounts
 
 5. what about the unify password reset tool. how does that impact in any way ?
 
