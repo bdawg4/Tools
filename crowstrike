@@ -14,3 +14,7 @@ will we have visibility to the falcon dashboard ?
 is the resource foot-print the same for both detection and prevention or is one more taxing than the other , in terms of system resources ?
 
 is there a baseline policy specifically for DC? so we know EDR is not triggering false positives
+
+i think the golden rule is..:
+
+Never change every domain controller in a site, domain, or forest at the same time.
