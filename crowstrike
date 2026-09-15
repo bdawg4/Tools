@@ -1,0 +1,14 @@
+once the falcon agent is installed, is there someone we can contact to validate successful connection with with crowstrike cloud platform.. cloud management
+
+crowstrike EDR is a SAAS product
+
+are we planning on using software distribution solution to deploy or manual installs for now? is there a preferred method to do the rollout?
+
+manual installer is only 3 clicks.. agree to license, ok and finish
+
+will we have visibility to the falcon dashboard ?
+
+- right now during this roll out it will only be detection and no enforcement..
+
+
+is the resource foot-print the same for both detection and prevention or is one more taxing than the other , in terms of system resources ?
