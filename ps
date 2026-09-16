@@ -58,3 +58,60 @@ Invoke-Command -Session $s -ScriptBlock {
 When finished:
 
 Remove-PSSession $s
+
+########
+
+$Server = "global-root-g3.chain-demos.digicert.com"
+$Port = 443
+
+$tcp = New-Object System.Net.Sockets.TcpClient
+$tcp.Connect($Server,$Port)
+
+$ssl = New-Object System.Net.Security.SslStream(
+    $tcp.GetStream(),
+    $false
+)
+
+try {
+    $ssl.AuthenticateAsClient(
+        $Server,
+        $null,
+        [System.Security.Authentication.SslProtocols]::Tls12,
+        $false
+    )
+
+    Write-Host "TLS SUCCESS"
+}
+catch {
+    Write-Host "TLS FAILED:"
+    Write-Host $_.Exception.Message
+
+    $e = $_.Exception.InnerException
+    while ($e) {
+        Write-Host "INNER:" $e.Message
+        $e = $e.InnerException
+    }
+}
+finally {
+    $ssl.Dispose()
+    $tcp.Dispose()
+}
+
+#####
+
+$G3 = "7E04DE896A3E666D00E687D33FFAD93BE83D349E"
+
+Get-ChildItem Cert:\LocalMachine\Root |
+    Where-Object Thumbprint -eq $G3
+
+###
+
+Test-Path "Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\SystemCertificates\AuthRoot\Certificates\$G3"
+
+###
+
+certutil -verifyctl AuthRoot | findstr /i "lastsynctime"
+
+###
+
+reg query "HKLM\SOFTWARE\Policies\Microsoft\SystemCertificates\AuthRoot" /v DisableRootAutoUpdate
