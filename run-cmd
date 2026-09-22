@@ -1,0 +1,5 @@
+.\Backup-Restore-OUAcl.ps1 -Action Backup -OU "OU=AlexA,DC=corp,DC=contoso,DC=com" -Path C:\Temp\AlexA.xml -Interactive
+
+.\Backup-Restore-OUAcl.ps1 -Action Restore -OU "OU=AlexA,DC=corp,DC=contoso,DC=com" -Path C:\Temp\AlexA.xml -Interactive -WhatIf
+
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
