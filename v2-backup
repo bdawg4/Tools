@@ -1,0 +1,129 @@
+<#
+.SYNOPSIS
+    v2 - Backs up and restores AD OU ACEs, with basic identity filtering.
+
+.DESCRIPTION
+    Builds on v1 by adding:
+      - A Restore action.
+      - An -Identity filter so you can narrow down which ACEs to back up or
+        restore by wildcard match (e.g. "CONTOSO\Finance*").
+      - Only explicit (non-inherited) ACEs are captured by default, since
+        inherited ones can't be meaningfully restored onto a child object.
+
+    Still missing (added in the final version): interactive Out-GridView
+    selection, an automatic pre-restore safety backup, -WhatIf/-Confirm
+    support, and alternate credentials/server targeting.
+
+.PARAMETER Action
+    Backup or Restore.
+
+.PARAMETER OU
+    Distinguished Name of the target OU.
+
+.PARAMETER Path
+    File path for the backup data (CLIXML).
+
+.PARAMETER Identity
+    One or more wildcard patterns to filter which ACEs are backed up/restored.
+
+.EXAMPLE
+    .\v2-Backup-Restore-OUAcl.ps1 -Action Backup -OU "OU=Finance,DC=contoso,DC=com" `
+        -Path C:\ACL\Finance.xml -Identity "CONTOSO\HelpDesk*"
+
+.EXAMPLE
+    .\v2-Backup-Restore-OUAcl.ps1 -Action Restore -OU "OU=Finance,DC=contoso,DC=com" `
+        -Path C:\ACL\Finance.xml
+#>
+
+param(
+    [Parameter(Mandatory = $true)]
+    [ValidateSet('Backup', 'Restore')]
+    [string]$Action,
+
+    [Parameter(Mandatory = $true)]
+    [string]$OU,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Path,
+
+    [string[]]$Identity
+)
+
+function Test-IdentityMatch {
+    param([string]$IdentityValue, [string[]]$Patterns)
+    if (-not $Patterns) { return $true }
+    foreach ($p in $Patterns) {
+        if ($IdentityValue -like $p) { return $true }
+    }
+    return $false
+}
+
+function ConvertFrom-AceRecord {
+    param($Record)
+
+    $identity    = New-Object System.Security.Principal.NTAccount($Record.IdentityReference)
+    $rights      = [System.DirectoryServices.ActiveDirectoryRights]$Record.ActiveDirectoryRights
+    $type        = [System.Security.AccessControl.AccessControlType]$Record.AccessControlType
+    $inheritance = [System.DirectoryServices.ActiveDirectorySecurityInheritance]$Record.InheritanceType
+    $objectType  = [Guid]$Record.ObjectType
+    $inheritedObjectType = [Guid]$Record.InheritedObjectType
+    $emptyGuid   = [Guid]::Empty
+
+    if ($objectType -eq $emptyGuid -and $inheritedObjectType -eq $emptyGuid) {
+        New-Object System.DirectoryServices.ActiveDirectoryAccessRule($identity, $rights, $type, $inheritance)
+    } elseif ($objectType -ne $emptyGuid -and $inheritedObjectType -eq $emptyGuid) {
+        New-Object System.DirectoryServices.ActiveDirectoryAccessRule($identity, $rights, $type, $objectType, $inheritance)
+    } else {
+        New-Object System.DirectoryServices.ActiveDirectoryAccessRule($identity, $rights, $type, $objectType, $inheritance, $inheritedObjectType)
+    }
+}
+
+$de  = New-Object System.DirectoryServices.DirectoryEntry("LDAP://$OU")
+$acl = $de.PsBase.ObjectSecurity
+
+if ($Action -eq 'Backup') {
+
+    $rules = $acl.GetAccessRules($true, $false, [System.Security.Principal.NTAccount])  # explicit only
+
+    if ($Identity) {
+        $rules = $rules | Where-Object { Test-IdentityMatch -IdentityValue $_.IdentityReference.Value -Patterns $Identity }
+    }
+
+    $records = $rules | ForEach-Object {
+        [PSCustomObject]@{
+            OU                    = $OU
+            IdentityReference     = $_.IdentityReference.Value
+            ActiveDirectoryRights = $_.ActiveDirectoryRights.ToString()
+            AccessControlType     = $_.AccessControlType.ToString()
+            ObjectType            = $_.ObjectType.ToString()
+            InheritedObjectType   = $_.InheritedObjectType.ToString()
+            InheritanceType       = $_.InheritanceType.ToString()
+            IsInherited           = $_.IsInherited
+        }
+    }
+
+    $records | Export-Clixml -Path $Path -Force
+    Write-Host "Backed up $($records.Count) ACE(s) from '$OU' to '$Path'."
+
+} else {
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "Backup file '$Path' not found."
+    }
+
+    $records = Import-Clixml -Path $Path | Where-Object { -not $_.IsInherited }
+
+    if ($Identity) {
+        $records = $records | Where-Object { Test-IdentityMatch -IdentityValue $_.IdentityReference -Patterns $Identity }
+    }
+
+    $applied = 0
+    foreach ($record in $records) {
+        $rule = ConvertFrom-AceRecord -Record $record
+        $acl.AddAccessRule($rule)
+        $applied++
+    }
+
+    $de.PsBase.CommitChanges()
+    Write-Host "Restored $applied ACE(s) onto '$OU'."
+}
