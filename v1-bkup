@@ -1,0 +1,53 @@
+<#
+.SYNOPSIS
+    v1 - Backs up the full ACL of an AD OU. No filtering, no restore.
+
+.DESCRIPTION
+    Earliest version: just proves out reading an OU's ACL via ADSI and saving
+    every ACE to disk. No selection, no restore capability yet.
+
+.PARAMETER OU
+    Distinguished Name of the target OU, e.g. "OU=Finance,DC=contoso,DC=com".
+
+.PARAMETER Path
+    Output file path (CLIXML) for the backed-up ACL.
+
+.EXAMPLE
+    .\v1-Backup-OUAcl.ps1 -OU "OU=Finance,DC=contoso,DC=com" -Path C:\ACL\Finance.xml
+#>
+
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$OU,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Path
+)
+
+# Bind to the OU
+$de = New-Object System.DirectoryServices.DirectoryEntry("LDAP://$OU")
+
+# ObjectSecurity has to be accessed via PsBase or PowerShell's ADSI adapter
+# intercepts the property lookup.
+$acl = $de.PsBase.ObjectSecurity
+
+# Grab every access rule (explicit + inherited), resolved to friendly account names.
+$rules = $acl.GetAccessRules($true, $true, [System.Security.Principal.NTAccount])
+
+# Flatten to plain objects so they survive round-tripping cleanly.
+$records = $rules | ForEach-Object {
+    [PSCustomObject]@{
+        OU                    = $OU
+        IdentityReference     = $_.IdentityReference.Value
+        ActiveDirectoryRights = $_.ActiveDirectoryRights.ToString()
+        AccessControlType     = $_.AccessControlType.ToString()
+        ObjectType            = $_.ObjectType.ToString()
+        InheritedObjectType   = $_.InheritedObjectType.ToString()
+        InheritanceType       = $_.InheritanceType.ToString()
+        IsInherited           = $_.IsInherited
+    }
+}
+
+$records | Export-Clixml -Path $Path -Force
+
+Write-Host "Backed up $($records.Count) ACE(s) from '$OU' to '$Path'."
