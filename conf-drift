@@ -1,0 +1,313 @@
+#Requires -Modules ActiveDirectory
+<#
+.SYNOPSIS
+    Baselines and monitors membership of high-privilege Active Directory groups,
+    detecting and reporting membership drift (adds/removes) on each run.
+
+.DESCRIPTION
+    On first run (no baseline file present), the script enumerates the specified
+    privileged groups, records their membership, and writes a baseline JSON file.
+
+    On subsequent runs, it re-enumerates the same groups and diffs the current
+    membership against the stored baseline. Any additions or removals are written
+    to stdout via Write-Host (color-coded) and optionally to a rolling log file.
+
+    Membership is resolved recursively (nested groups expanded) so that indirect
+    privilege grants are caught, and results are de-duplicated by objectSID.
+
+    Designed to be run on a schedule (Task Scheduler / cron via pwsh) from a
+    domain-joined host or a management server with the RSAT AD PowerShell module,
+    using an account with read access to AD (no elevated rights required to read
+    group membership).
+
+.PARAMETER GroupNames
+    One or more AD group names (sAMAccountName) to monitor. Defaults to the
+    well-known built-in high-privilege groups if not specified.
+
+.PARAMETER BaselinePath
+    Path to the JSON file used to store/compare baseline state.
+    Defaults to .\PrivGroupBaseline.json alongside the script.
+
+.PARAMETER LogPath
+    Optional path to a text log file. If supplied, detected changes are appended
+    there in addition to being written to stdout.
+
+.PARAMETER Server
+    Optional target domain controller. Defaults to the domain controller
+    auto-discovered by the AD module.
+
+.PARAMETER ResetBaseline
+    Forces the current membership snapshot to overwrite the existing baseline
+    (use after a reviewed/approved change, or for the very first run).
+
+.PARAMETER Credential
+    Optional PSCredential to query AD as a different account.
+
+.EXAMPLE
+    .\Monitor-PrivilegedADGroups.ps1
+    First run: creates baseline. Subsequent runs: reports drift.
+
+.EXAMPLE
+    .\Monitor-PrivilegedADGroups.ps1 -GroupNames "Domain Admins","Enterprise Admins" -LogPath C:\Logs\ad-priv-audit.log
+
+.EXAMPLE
+    .\Monitor-PrivilegedADGroups.ps1 -ResetBaseline
+    Approves current state as the new known-good baseline.
+
+.NOTES
+    Author:  Security/IT Operations
+    Intended use: scheduled task under a low-privilege, read-only service account.
+    Exit codes: 0 = no drift / baseline created, 2 = drift detected, 1 = error.
+#>
+
+[CmdletBinding()]
+param(
+    [string[]]$GroupNames = @(
+        'Domain Admins',
+        'Enterprise Admins',
+        'Schema Admins',
+        'Administrators',
+        'Account Operators',
+        'Backup Operators',
+        'Server Operators',
+        'Print Operators',
+        'DnsAdmins',
+        'Group Policy Creator Owners',
+        'Cert Publishers'
+    ),
+
+    [string]$BaselinePath = (Join-Path -Path $PSScriptRoot -ChildPath 'PrivGroupBaseline.json'),
+
+    [string]$LogPath,
+
+    [string]$Server,
+
+    [switch]$ResetBaseline,
+
+    [System.Management.Automation.PSCredential]$Credential
+)
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
+#region Helper functions -----------------------------------------------------
+
+function Write-Log {
+    param(
+        [Parameter(Mandatory)][string]$Message,
+        [ValidateSet('INFO','WARN','CHANGE','ERROR')][string]$Level = 'INFO'
+    )
+
+    $timestamp = (Get-Date).ToString('yyyy-MM-dd HH:mm:ss')
+    $line = "[$timestamp] [$Level] $Message"
+
+    switch ($Level) {
+        'CHANGE' { Write-Host $line -ForegroundColor Yellow }
+        'WARN'   { Write-Host $line -ForegroundColor DarkYellow }
+        'ERROR'  { Write-Host $line -ForegroundColor Red }
+        default  { Write-Host $line -ForegroundColor Gray }
+    }
+
+    if ($LogPath) {
+        try {
+            Add-Content -Path $LogPath -Value $line -Encoding UTF8
+        }
+        catch {
+            Write-Host "[$timestamp] [WARN] Could not write to log file '$LogPath': $($_.Exception.Message)" -ForegroundColor DarkYellow
+        }
+    }
+}
+
+function Get-GroupMemberSnapshot {
+    <#
+        Returns a de-duplicated, recursive snapshot of a group's effective members
+        as an array of hashtables (stable, comparable fields only).
+    #>
+    param(
+        [Parameter(Mandatory)][string]$GroupName,
+        [string]$Server,
+        [System.Management.Automation.PSCredential]$Credential
+    )
+
+    $params = @{
+        Identity    = $GroupName
+        Recursive   = $true
+        ErrorAction = 'Stop'
+    }
+    if ($Server)     { $params['Server']     = $Server }
+    if ($Credential) { $params['Credential'] = $Credential }
+
+    $members = Get-ADGroupMember @params |
+        Sort-Object -Property SID -Unique |
+        ForEach-Object {
+            [ordered]@{
+                Name              = $_.Name
+                SamAccountName    = $_.SamAccountName
+                ObjectClass       = $_.objectClass
+                SID               = $_.SID.Value
+                DistinguishedName = $_.DistinguishedName
+            }
+        }
+
+    # Ensure we always return an array, even for 0/1 members
+    return @($members)
+}
+
+function Get-CurrentState {
+    param(
+        [string[]]$GroupNames,
+        [string]$Server,
+        [System.Management.Automation.PSCredential]$Credential
+    )
+
+    $state = [ordered]@{}
+
+    foreach ($group in $GroupNames) {
+        try {
+            $state[$group] = Get-GroupMemberSnapshot -GroupName $group -Server $Server -Credential $Credential
+        }
+        catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
+            Write-Log -Level WARN -Message "Group '$group' was not found in the domain (skipped). It may not exist in this environment."
+        }
+        catch {
+            Write-Log -Level ERROR -Message "Failed to enumerate group '$group': $($_.Exception.Message)"
+            throw
+        }
+    }
+
+    return $state
+}
+
+function Compare-GroupState {
+    <#
+        Compares two state hashtables (baseline vs current) keyed by group name.
+        Returns $true if any drift was found, $false otherwise. Emits detail via Write-Log.
+    #>
+    param(
+        [Parameter(Mandatory)]$BaselineState,
+        [Parameter(Mandatory)]$CurrentState
+    )
+
+    $driftDetected = $false
+    $allGroupNames = @($BaselineState.Keys) + @($CurrentState.Keys) | Sort-Object -Unique
+
+    foreach ($group in $allGroupNames) {
+
+        $baseMembers = @($BaselineState[$group])
+        $currMembers = @($CurrentState[$group])
+
+        if (-not $BaselineState.Contains($group)) {
+            Write-Log -Level CHANGE -Message "NEW MONITORED GROUP since baseline: '$group' (no prior baseline entry) — $($currMembers.Count) member(s)."
+            $driftDetected = $true
+            continue
+        }
+        if (-not $CurrentState.Contains($group)) {
+            Write-Log -Level WARN -Message "Group '$group' present in baseline but not resolvable now (deleted or inaccessible)."
+            continue
+        }
+
+        $baseBySid = @{}
+        foreach ($m in $baseMembers) { if ($m.SID) { $baseBySid[$m.SID] = $m } }
+
+        $currBySid = @{}
+        foreach ($m in $currMembers) { if ($m.SID) { $currBySid[$m.SID] = $m } }
+
+        $addedSids   = $currBySid.Keys | Where-Object { -not $baseBySid.ContainsKey($_) }
+        $removedSids = $baseBySid.Keys | Where-Object { -not $currBySid.ContainsKey($_) }
+
+        foreach ($sid in $addedSids) {
+            $m = $currBySid[$sid]
+            Write-Log -Level CHANGE -Message "[$group] MEMBER ADDED: $($m.SamAccountName) ($($m.ObjectClass)) [SID: $($m.SID)]"
+            $driftDetected = $true
+        }
+        foreach ($sid in $removedSids) {
+            $m = $baseBySid[$sid]
+            Write-Log -Level CHANGE -Message "[$group] MEMBER REMOVED: $($m.SamAccountName) ($($m.ObjectClass)) [SID: $($m.SID)]"
+            $driftDetected = $true
+        }
+    }
+
+    return $driftDetected
+}
+
+function Save-Baseline {
+    param(
+        [Parameter(Mandatory)]$State,
+        [Parameter(Mandatory)][string]$Path
+    )
+
+    $payload = [ordered]@{
+        GeneratedUtc = (Get-Date).ToUniversalTime().ToString('o')
+        Domain       = (Get-ADDomain).DNSRoot
+        Groups       = $State
+    }
+
+    $json = $payload | ConvertTo-Json -Depth 6
+    $tempPath = "$Path.tmp"
+
+    # Atomic-ish write: write to temp file then move, to avoid a half-written
+    # baseline if the script is interrupted mid-write.
+    Set-Content -Path $tempPath -Value $json -Encoding UTF8
+    Move-Item -Path $tempPath -Destination $Path -Force
+}
+
+function Import-Baseline {
+    param([Parameter(Mandatory)][string]$Path)
+
+    $raw = Get-Content -Path $Path -Raw -Encoding UTF8
+    $parsed = $raw | ConvertFrom-Json -Depth 6
+
+    # Rehydrate into an ordered hashtable keyed by group name, values as arrays
+    $state = [ordered]@{}
+    foreach ($prop in $parsed.Groups.PSObject.Properties) {
+        $state[$prop.Name] = @($prop.Value)
+    }
+    return $state
+}
+
+#endregion --------------------------------------------------------------------
+
+#region Main --------------------------------------------------------------------
+
+try {
+    Write-Log -Level INFO -Message "Starting privileged AD group check. Monitoring $($GroupNames.Count) group(s): $($GroupNames -join ', ')"
+
+    $currentState = Get-CurrentState -GroupNames $GroupNames -Server $Server -Credential $Credential
+
+    $baselineExists = Test-Path -Path $BaselinePath -PathType Leaf
+
+    if (-not $baselineExists -or $ResetBaseline) {
+        Save-Baseline -State $currentState -Path $BaselinePath
+        if ($ResetBaseline -and $baselineExists) {
+            Write-Log -Level INFO -Message "Baseline reset requested. Current membership saved as new baseline: '$BaselinePath'"
+        }
+        else {
+            Write-Log -Level INFO -Message "No existing baseline found. Initial baseline created: '$BaselinePath'"
+        }
+        Write-Log -Level INFO -Message "Run the script again on a schedule to detect future drift."
+        exit 0
+    }
+
+    Write-Log -Level INFO -Message "Existing baseline loaded from '$BaselinePath'. Comparing current membership..."
+    $baselineState = Import-Baseline -Path $BaselinePath
+
+    $driftDetected = Compare-GroupState -BaselineState $baselineState -CurrentState $currentState
+
+    if ($driftDetected) {
+        Write-Log -Level CHANGE -Message "DRIFT DETECTED in one or more privileged group(s). Review the changes above."
+        # NOTE: baseline is intentionally NOT auto-updated after drift is found.
+        # Re-run with -ResetBaseline only after the change has been reviewed and approved,
+        # so that an unauthorized change can't silently become the new accepted state.
+        exit 2
+    }
+    else {
+        Write-Log -Level INFO -Message "No changes detected. All monitored groups match the baseline."
+        exit 0
+    }
+}
+catch {
+    Write-Log -Level ERROR -Message "Unhandled error: $($_.Exception.Message)"
+    exit 1
+}
+
+#endregion
