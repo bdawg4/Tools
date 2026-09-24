@@ -53,7 +53,8 @@ function Backup-Acl {
         return
     }
 
-    # one file per object, so group the csv rows by DN
+    # one file per object.
+    
     $groups = $rows | Group-Object ObjectDN
 
     foreach ($group in $groups) {
@@ -70,8 +71,6 @@ function Backup-Acl {
 
         $acl = Get-Acl "AD:\$dn"
 
-        # -contains is case-insensitive for strings, so DOMAIN\user vs
-        # domain\User in the csv still matches
         $matches = $acl.Access | Where-Object { $trustees -contains $_.IdentityReference.Value }
 
         if (-not $matches) {
@@ -92,7 +91,8 @@ function Backup-Acl {
             }
         }
 
-        # name the file after the object itself, not the OU path it lives in
+        # name the file after the object itself.
+        
         $fileName = ($obj.Name -replace '[\\/:*?"<>|]', '_') + '.xml'
         $export | Export-Clixml -Path $fileName
 
@@ -104,13 +104,13 @@ function Restore-Acl {
     param($XmlPath)
 
     if (-not (Test-Path $XmlPath)) {
-        Write-Error "Can't find $XmlPath"
+        Write-Error "Can't find $XmlPath !!!"
         return
     }
 
     $entries = Import-Clixml $XmlPath
 
-    $picked = $entries | Out-GridView -Title "Select the ACE(s) to restore" -OutputMode Multiple
+    $picked = $entries | Out-GridView -Title "Select the ACE(s) to restore ..." -OutputMode Multiple
     if (-not $picked) {
         Write-Host "Nothing selected ... Exiting."
         return
