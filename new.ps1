@@ -116,8 +116,7 @@ function Restore-Acl {
         return
     }
 
-    Write-Host ""
-    Write-Host "About to restore:"
+    Write-Host "`n About to restore:"
     $picked | Format-Table ObjectDN, IdentityReference, ActiveDirectoryRights, AccessControlType -AutoSize | Out-Host
 
     $confirm = Read-Host "Type YES to apply these changes"
