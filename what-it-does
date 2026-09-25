@@ -1,0 +1,20 @@
+Params – accepts either -Backup -CsvPath <file> or -Restore -XmlPath <file> (two mutually exclusive modes, can't mix them in one run).
+
+Backup-Acl
+Confirms the CSV exists and isn't empty.
+Groups the CSV rows by ObjectDN, so all trustees listed for the same object are handled together.
+For each object: looks it up in AD , then pulls its full current ACL.
+Filters ACL down to only the ACEs whose trustee matches csv objects (skips the object if none match).
+Builds a clean export record per matching ACE (identity, rights, allow/deny, object type GUIDs, inheritance info).
+Names the output file after the object itself (not its OU path), sanitizing any characters Windows won't allow in a filename.
+Writes the records to <objectname>.xml and prints how many ACEs were saved.
+
+Restore-Acl
+Confirms the xml file exists.
+Loads the saved ACE records from it.
+Displays them in Out-GridView so the operator can multi-select exactly which ones to restore.
+Prints a summary table of the selection and requires typing "YES" before doing anything.
+Groups the selection by object (in case a file ever covers more than one), pulls that object's current ACL.
+Rebuilds each selected record back into a real access rule (identity, rights, type, inheritance, object type GUIDs) and adds it to the ACL.
+Applies the updated ACL with Set-Acl; if that fails, prints the error and exits instead of continuing on to the next object.
+Bottom lines – based on which switch was passed, calls Backup-Acl or Restore-Acl with the given file path.
