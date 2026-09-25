@@ -5,7 +5,7 @@ Confirms the CSV exists and isn't empty.
 Groups the CSV rows by ObjectDN, so all trustees listed for the same object are handled together.
 For each object: looks it up in AD , then pulls its full current ACL.
 Filters ACL down to only the ACEs whose trustee matches csv objects (skips the object if none match).
-Builds a clean export record per matching ACE (identity, rights, allow/deny, object type GUIDs, inheritance info).
+Builds a clean export record per matching ACE (Access Control Entry) (identity, rights, allow/deny, object type GUIDs, inheritance info).
 Names the output file after the object itself (not its OU path), sanitizing any characters Windows won't allow in a filename.
 Writes the records to <objectname>.xml and prints how many ACEs were saved.
 
