@@ -144,8 +144,15 @@ function Restore-Acl {
             $acl.AddAccessRule($rule)
         }
 
+    try {
         Set-Acl "AD:\$dn" $acl
         Write-Host "Restored $($group.Group.Count) ACE(s) on $dn ..."
+    }
+    catch {
+        Write-Error "Failed to set ACL on $dn : $_"
+        exit 1
+    }
+        
     }
 }
 
