@@ -119,7 +119,7 @@ function Restore-Acl {
     Write-Host "`n About to restore:"
     $picked | Format-Table ObjectDN, IdentityReference, ActiveDirectoryRights, AccessControlType -AutoSize | Out-Host
 
-    $confirm = Read-Host "Type YES to apply these changes"
+    $confirm = Read-Host "Type YES to apply these changes or ENTER to cancel"
     if ($confirm -ne 'YES') {
         Write-Host "Cancelled ... Exiting."
         return
