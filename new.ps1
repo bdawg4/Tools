@@ -96,7 +96,7 @@ function Backup-Acl {
         $fileName = ($obj.Name -replace '[\\/:*?"<>|]', '_') + '.xml'
         $export | Export-Clixml -Path $fileName
 
-        Write-Host "Saved $($export.Count) ACE(s) for '$($obj.Name)' -> $fileName"
+        Write-Host "Backed up $($export.Count) ACE for '$($obj.Name)' -> $fileName"
     }
 }
 
