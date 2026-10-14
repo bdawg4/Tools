@@ -1,0 +1,15 @@
+We synced with the QA team today regarding Friday’s SWQA upgrade and identified a potential storage issue on the existing DFS servers.
+there is a disk usage discrepancy on one of the servers and it is not currently replicating..
+
+at the moment, each DFS server has preallocated 1 terabyte of thin provisioning ( hard limit of 1tb and allocate this as needed)
+
+however,  the 1 server not replicating, its reaching that 1 terabyte limit.
+
+so two things, we need to investigate and fix the replication and storage issue  on the problematic DFS server before introducing the new servers as replication members..
+
+
+number two.. the storage allocation on the new replacement servers need to be increased to 1TB each..
+but we dont have the storage capacity.. 2 TB extra
+
+
+for the storage/VMware piece.. is liju the right person to talk to ?
