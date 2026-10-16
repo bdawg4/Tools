@@ -1,0 +1,5 @@
+setspn -S TERMSRV/NEWDC01 NEWDC01
+setspn -S TERMSRV/NEWDC01.domain.local NEWDC01
+
+setspn -S WSMAN/NEWDC01 NEWDC01
+setspn -S WSMAN/NEWDC01.domain.local NEWDC01
