@@ -1,0 +1,1 @@
+robocopy "\\OLD-DFS01\D$\SWQA" "D:\SWQA" /E /B /COPYALL /DCOPY:DAT /R:3 /W:5 /MT:16 /XD DfsrPrivate /TEE /LOG:C:\Temp\SWQA-Preseed.log
