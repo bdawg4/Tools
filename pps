@@ -1,0 +1,11 @@
+what we can do is quickly query the users per group, build a list with details and send them an email to change their passwords on the next logon.
+
+on our end we can set the passlast set attribute to "0" so they are forced to change the password on their next login. they will be prompted to change 
+the password after entering the current password
+
+
+Custom Attribute:
+
+Employee ID = UUID
+
+so we need a list of names with uuid, so we can correlate the accounts and extract the email address
