@@ -1,1 +1,36 @@
 robocopy "\\OLD-DFS01\D$\SWQA" "D:\SWQA" /E /B /COPYALL /DCOPY:DAT /R:3 /W:5 /MT:16 /XD DfsrPrivate /TEE /LOG:C:\Temp\SWQA-Preseed.log
+
+
+### Summary of Change
+AMER DFS Infrastructure Migration to Windows Server 2022.
+
+### Change Summary
+Replace four existing DFS servers with four new Windows Server 2022 servers across Orangeburg and Ridge Road data centers. Preserve the existing DFS namespace `\\peoplesoft.bloomberg.com\admin-dfs`, replication group `ADMIN-DFS`, and AdminTools and Packages shares.
+
+### Business Justification
+Modernize the DFS infrastructure, replace aging servers, improve resiliency, and maintain high availability across both data centers while preserving existing user access and functionality.
+
+### Expected Impact
+Minimal user impact anticipated. Existing DFS paths and drive mappings will remain unchanged. A controlled cutover will be performed after replication synchronization and validation. Brief SMB reconnections may occur.
+
+### Rollout Plan
+1. Provision four Windows Server 2022 servers and install DFS Namespace, DFS Replication, and File Server roles.
+2. Pre-seed AdminTools and Packages data, preserving permissions.
+3. Add new servers to the existing DFS replication group and validate synchronization.
+4. Add new namespace servers and folder targets.
+5. Transition DFS referrals to the new servers and validate access.
+6. Retain legacy servers for rollback and decommission after stabilization.
+
+### Rollback Plan
+1. Suspend migration activities and restrict writes if data consistency is uncertain.
+2. Verify and reconcile any changes made to the new servers.
+3. Re-enable legacy DFS folder targets and disable new target referrals.
+4. Validate replication, file access, and application functionality on the original servers.
+5. Resume normal operations after stakeholder confirmation.
+
+### Validation Plan
+1. Confirm DFS namespace and existing UNC paths remain accessible.
+2. Verify AdminTools and Packages data, permissions, and replication health.
+3. Confirm all four new servers are functioning as DFS namespace and replication members.
+4. Validate client access and DFS referrals from both data centers.
+5. Perform controlled failover testing and obtain application owner sign-off.
