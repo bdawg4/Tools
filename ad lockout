@@ -6,3 +6,31 @@ index=windows sourcetype="WinEventLog:Security"
         TargetUserName Workstation_Name
         Client_Address Status Failure_Code Message
 | sort _time
+
+
+
+#####
+
+
+index=e2e_svr_ad_seceventlog sourcetype=WinEventLog:Security EventCode IN (4624 4769 4768 4771 4776 4770 4625 4773 4740) $account_name$
+| eval ip_address=coalesce('Source_Address', replace('Client_Address', "^::ffff:", ""), 'Source_Network_Address')
+| eval account=coalesce('Account_Name', 'Logon_Account')
+| eval result=coalesce('Failure_Code', 'Result_Code', 'Sub_Status', 'Error_Code')
+| eval result=if(result == "0x0", "success", result)
+| eval ip_address=if(isnull(ip_address) OR ip_address == "-", "-", ip_address)
+| eval account=mvindex(mvfilter(account != "-"), 0)
+| rex field=account "^(?<clean_account_name>[^@]+)"
+| eval Event_Description = case(
+    EventCode == "4624", "An account was successfully logged on.",
+    EventCode == "4769", "A Kerberos service ticket was requested.",
+    EventCode == "4768", "A Kerberos authentication ticket (TGT) was requested.",
+    EventCode == "4771", "A Kerberos pre-authentication failed.",
+    EventCode == "4776", "The computer attempted to validate the credentials for an account.",
+    EventCode == "4770", "A Kerberos service ticket was renewed.",
+    EventCode == "4625", "An account failed to log on.",
+    EventCode == "4773", "A Kerberos service ticket request failed.",
+    EventCode == "4740", "A user account was locked out."
+)
+| rename EventCode as "Event Code", Event_Description as "Event Description", host as "Domain Controller", DomainName as "Domain Name", ip_address as "Client IP Address", clean_account_name as "Account Name"
+| table _time, "Event Code", "Event Description", "Domain Controller", "Domain Name", "Client IP Address", "Account Name", result
+```[cite: 1]
