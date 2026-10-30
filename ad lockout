@@ -1,0 +1,8 @@
+index=windows sourcetype="WinEventLog:Security"
+(EventCode=4740 OR EventCode=4776 OR EventCode=4771
+ OR EventCode=4625 OR EventCode=4768)
+("username")
+| table _time host EventCode Account_Name
+        TargetUserName Workstation_Name
+        Client_Address Status Failure_Code Message
+| sort _time
