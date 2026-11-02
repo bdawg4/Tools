@@ -1,0 +1,70 @@
+#####
+
+1. should we establish a risk-based migration sequence.. which sites are less critical and go from there..
+2. regional authentication impact.. depending on number of users, servers and services...
+3. DC redundancy per site.. i understand some sites only have 1 dc..
+
+** any specific instructions or configurations depending on DC ?
+
+** determine number of waves..
+
+1. low risk locations go first
+2. medium risk locations..
+3. lastly high risk locations
+
+***.. we can start building the servers in the meantime..
+
+#####
+
+
+data driven discovery..
+
+DSC desire state configuration 
+
+dashboard / alerting enhancement.. 
+
+service restarts..
+
+clean up empty GPO.. unlinked
+
+#### Peoplesoft
+
+
+1. complete a manual password reset by user group as the immediate solution for year end.
+
+   - current setting is a max password age of 365 days, we dont have permissions to see fine grain password policy
+   - we can however force a list of users to reset their passwords on the day you tell us to -0 and 1
+   - external users use b-unit but unsure if they use their payapp accounts so we need to figure out if they should be reset.
+   - if external users need to reset their password, can they get notification? uuid provided and external email..
+   - unified password solution only include the corp domain and b-unit at the moment.. MPS
+
+2. do you need the users to actually reset the password or are you asking 
+
+Business direction: Confirm that the Password Reminder Service is the preferred initial approach and Unified Password remains a future consideration.
+
+
+
+Ownership and dependencies: Determine who owns the development changes, notification templates, documentation, and AD policy validation.
+
+
+
+Next steps and timing: Agree on which stakeholders need to participate in a technical working session, what needs to be documented in Jira, and whether Q2 2027 remains the target.
+
+
+Setting pwdLastSet to 0
+
+• What it does: Forces the user to change their password immediately at the next logon.
+
+
+Setting pwdLastSet to -1
+
+• What it does: Marks the password as "last updated right now" and clears the forced reset block.
+
+
+Option 2: The Math Approach (Fine-Grained Password Policies)
+
+If you want to target a group of users rather than a single individual, you can use Active Directory's Fine-Grained Password Policies (FGPP) to artificially force an expiration on a specific timeline.
+• How it works: You calculate the exact number of days between today and your target target date. You then create a Password Settings Object (PSO), set the Maximum password age to that number of days, and apply it to the user.
+• The Catch: This goes strictly by the days elapsed since the user last changed their password. If they change their password tomorrow, the expiration date shifts forward, so it is not a fixed calendar date.
+
+
