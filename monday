@@ -17,15 +17,15 @@
 #####
 
 
-data driven discovery..
+1. Data-Driven Automation Opportunities – Leverage operational metrics and ticket trends to identify repetitive tasks and prioritize automation opportunities.
 
-DSC desire state configuration 
+2. Desired State Configuration (DSC) Adoption – Implement DSC to standardize, automate, and enforce consistent server configurations across AD infrastructure.
 
-dashboard / alerting enhancement.. 
+3. Monitoring & Alerting Enhancements – Expand Splunk and Grafana dashboards to improve infrastructure visibility, proactive alerting, and operational insights.
 
-service restarts..
+4. Event-Driven Workflow Automation – Develop automated remediation workflows to detect service failures and safely restart services when predefined conditions are met.
 
-clean up empty GPO.. unlinked
+5. Active Directory & GPO Hygiene – Conduct periodic AD and Group Policy audits to identify and remediate unused, empty, orphaned, and unlinked GPOs.
 
 #### Peoplesoft
 
