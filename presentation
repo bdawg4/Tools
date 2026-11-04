@@ -1,0 +1,46 @@
+Use case 1 — New employee onboarding
+Use case 2 — Employee transfers departments
+Use case 3 — Employee termination
+Use case 4 — Rehire or contractor extension
+Use case 5 — Partial workflow failure
+
+The account is created successfully, but group assignment fails or the domain controller becomes unavailable.
+
+Ask: Is there an automatic retry mechanism, a reconciliation job, and an alert to notify the support team?
+
+
+
+The main use of Microsoft Identity Manager (MIM) is to manage, synchronize, and automate user identities, credentials, groups, and access permissions across on-premises systems, directories, and databases.
+
+end of life is set for 2029 which Microsoft asks to migrate to entra id governance automation
+
+Core Functions and Capabilities
+
+• Identity Synchronization: Acts as a central synchronization engine to bridge and sync user data between on-premises Active Directory, HR systems, and external applications (such as SAP, Oracle, SQL databases, and other LDAP directories).
+• Identity Lifecycle Management: Automates the creation, updating, and deletion of user accounts and permissions as employees join, change roles, or leave an organization.
+• Self-Service Password Reset (SSPR) & Group Management: Allows end-users to safely reset their own passwords and manage group memberships without direct intervention from IT helpdesks.
+• Privileged Access Management (PAM): Helps secure administrative accounts by controlling and limiting temporary, elevated access to critical systems.
+• Hybrid Integration: Works alongside Microsoft Entra ID (formerly Azure AD) and Entra Connect to extend on-premises identity management into cloud-based
+
+
+My top five questions if the meeting is only 30 minutes
+1. What system is the authoritative source for onboarding and offboarding events, and how are those events triggered?
+2. How will the application communicate with AD, and can we leverage existing Quest Active Roles functionality?
+3. What exact AD permissions and attributes will the application need to modify?
+4. How will immediate terminations, failures, duplicate requests, and incomplete workflows be handled?
+5. Who owns the application, audit logs, monitoring, and operational support once it goes into production?
+
+in terms of identity lifecycle management, how are partial workflow failures handled ?
+
+account gets created but groups and roles are not..
+
+what about employee transferring departments..
+
+
+###
+
+"From an Active Directory standpoint, the core concepts and principles are largely the same. In my previous environment, we operated a multi-domain forest architecture, so there were different considerations around forest-wide management, trusts, replication, and administration.
+
+The biggest differences I've noticed are really in the tooling, operational processes, and how the environment is managed. Each organization has its own approach to provisioning, access management, automation, monitoring, and change control.
+
+Ultimately, the underlying technology is familiar to me. It's more about understanding how Bloomberg has implemented its architecture, the tools we use, and identifying opportunities to improve or streamline existing processes."
