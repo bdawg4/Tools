@@ -24,17 +24,11 @@ Why do you need TCP 135?
 
 "TCP 135 is the Microsoft RPC Endpoint Mapper. It allows RPC clients to identify the endpoint used by the requested service. We intend to restrict RPC connectivity to the necessary servers and operations rather than permitting broad access."
 
-
-
-
 Why do you need TCP 55000?
 
 "DFS Replication uses RPC to synchronize replicated folders between our DFS servers. We intend to configure a dedicated static port, TCP 55000, so we can avoid opening the full dynamic RPC range for DFSR."
 
 This requires verifying that every relevant DFSR member is configured to use that port.
-
-
-
 
 Is the communication encrypted?
 
@@ -42,11 +36,17 @@ Is the communication encrypted?
 
 Avoid claiming that all SMB traffic is encrypted by default; encryption must be enabled or required where appropriate.
 
-
-
-
 Does this require bidirectional communication?
 
 "For DFS replication, all configured replication partners need to be able to initiate the necessary communication with each other. For client access, connections are generally initiated from the clients toward the DFS namespace and file servers."
 
 Stateful firewall return traffic is different from allowing either server to initiate a connection.
+
+"Ultimately, our goal is to complete the DFS infrastructure refresh while maintaining application availability and adhering to our network security standards.
+
+We've tried to keep the firewall requirements as specific as possible, limiting the requested ports to the relevant servers and communication flows.
+
+We're happy to work with the firewall team on any additional restrictions or validation needed before approval."
+
+
+"We're not introducing a new application or expanding user access. We're replacing existing DFS infrastructure and establishing the connectivity required to maintain the current service."
