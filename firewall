@@ -1,0 +1,52 @@
+Thank you Henry for setting up this meeting..
+
+We're currently working on a Distributed file system server refresh in the PeopleSoft environment, we're replacing our existing servers with new Windows 2022 servers.
+
+As part of this migration, we need to establish the necessary network connectivity between the new DFS servers, as well as between the clients to the new DFS infrastructure.
+
+The objective is to maintain and ensure that users and applications can continue accessing their file shares without disruption.
+
+We've identified the required ports for SMB connectivity, RPC communication, and DFS replication. We'd like to walk through the use cases, explain why these ports are needed, and address any security concerns or questions"
+
+
+Port	Purpose	How to explain it
+TCP 445	SMB file access	Allows clients to access DFS namespace targets and file shares
+TCP 135	RPC Endpoint Mapper	Allows RPC-based services to discover the endpoints needed for management and certain DFS operations
+TCP 55000	DFS Replication	Used for server-to-server DFSR traffic, if DFSR has been explicitly configured to use this static port
+TCP 49152–65535	Dynamic RPC	May be needed for certain RPC-based operations unless the relevant services have been configured to use restricted ports
+
+One important technical distinction to be prepared for: DFS Namespace and DFS Replication are separate services. Ordinary client access to DFS shares typically relies on TCP 445, while DFSR requires its own server-to-server RPC connectivity.
+
+Also, TCP 135 is not automatically required for every client accessing a DFS share. You should be ready to justify it based on the actual traffic flow.
+
+
+Why do you need TCP 135?
+
+"TCP 135 is the Microsoft RPC Endpoint Mapper. It allows RPC clients to identify the endpoint used by the requested service. We intend to restrict RPC connectivity to the necessary servers and operations rather than permitting broad access."
+
+
+
+
+Why do you need TCP 55000?
+
+"DFS Replication uses RPC to synchronize replicated folders between our DFS servers. We intend to configure a dedicated static port, TCP 55000, so we can avoid opening the full dynamic RPC range for DFSR."
+
+This requires verifying that every relevant DFSR member is configured to use that port.
+
+
+
+
+Is the communication encrypted?
+
+"SMB 3.x supports encryption, and DFSR supports authenticated, encrypted replication traffic. We'll validate the applicable SMB encryption settings and replication configuration."
+
+Avoid claiming that all SMB traffic is encrypted by default; encryption must be enabled or required where appropriate.
+
+
+
+
+Does this require bidirectional communication?
+
+"For DFS replication, all configured replication partners need to be able to initiate the necessary communication with each other. For client access, connections are generally initiated from the clients toward the DFS namespace and file servers."
+
+Stateful firewall return traffic is different from allowing either server to initiate a connection.
